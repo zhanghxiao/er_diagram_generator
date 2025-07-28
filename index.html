@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER图生成器 - 智能工作台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 色彩系统 */
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --primary-alpha: rgba(99, 102, 241, 0.1);
+            
+            /* 功能色彩 */
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+            
+            /* 中性色 */
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --surface-hover: #f9fafb;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            
+            /* 阴影系统 */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            /* 设计参数 */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 流动背景 */
+        .ambient-background {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .ambient-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.1;
+            animation: ambient-float 30s infinite ease-in-out;
+        }
+
+        .ambient-shape:nth-child(1) {
+            width: 600px;
+            height: 600px;
+            background: var(--primary);
+            top: -300px;
+            left: -200px;
+            animation-duration: 35s;
+        }
+
+        .ambient-shape:nth-child(2) {
+            width: 500px;
+            height: 500px;
+            background: var(--success);
+            bottom: -250px;
+            right: -150px;
+            animation-duration: 40s;
+            animation-delay: 10s;
+        }
+
+        .ambient-shape:nth-child(3) {
+            width: 550px;
+            height: 550px;
+            background: var(--warning);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-duration: 45s;
+            animation-delay: 20s;
+        }
+
+        @keyframes ambient-float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(30px, -30px) scale(1.05);
+            }
+            66% {
+                transform: translate(-30px, 30px) scale(0.95);
+            }
+        }
+
+        /* 顶部导航栏 */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding: 16px 0;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .nav-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .nav-button:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+
+        .nav-button.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .nav-button.primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        /* 主容器 */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 15px 40px 24px;
+            display: flex;
+            gap: 24px;
+            min-height: calc(100vh - 100px);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            flex: 0 0 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* 卡片容器 */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-icon {
+            width: 20px;
+            height: 20px;
+            fill: var(--primary);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* 表单元素 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-alpha);
+        }
+
+        .form-textarea {
+            font-family: 'Monaco', 'Consolas', monospace;
+            resize: vertical;
+            min-height: 300px;
+            line-height: 1.5;
+        }
+
+        .form-helper {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--surface);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-icon {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toolbar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 预览区域 */
+        .preview-container {
+            flex: 1;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-hover);
+        }
+
+        .preview-body {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            background: white;
+            position: relative;
+            min-height: 400px;
+        }
+
+        #svgContainer {
+            width: 100%;
+            height: 100%;
+            min-width: fit-content;
+            min-height: fit-content;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            overflow: auto;
+        }
+
+        #svgContainer svg {
+            min-width: 100%;
+            min-height: 100%;
+            height: auto;
+            filter: drop-shadow(var(--shadow-lg));
+            transition: transform 0.3s ease;
+            display: block;
+        }
+
+        /* 语法指南 */
+        .syntax-guide {
+            background: var(--surface-hover);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .syntax-guide h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .syntax-guide pre {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        }
+
+        /* AI 配置模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            padding: 40px;
+            overflow: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            max-width: 500px;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* 状态指示器 */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                flex: none;
+                width: 100%;
+            }
+        }
+
+        /* 提示框 */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1100;
+            transform: translateX(400px);
+            transition: transform 0.3s ease-out;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.success .toast-icon {
+            fill: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--error);
+        }
+
+        .toast.error .toast-icon {
+            fill: var(--error);
+        }
+    </style>
+</head>
+<body>
+    <!-- 环境光背景 -->
+    <div class="ambient-background">
+        <div class="ambient-shape"></div>
+        <div class="ambient-shape"></div>
+        <div class="ambient-shape"></div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon">ER</div>
+                <span>ER图生成器</span>
+            </div>
+            <div class="nav-actions">
+                <button class="nav-button" onclick="showAIConfig()">
+                    <svg class="btn-icon" viewBox="0 0 24 24">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                    </svg>
+                    <span>AI 配置</span>
+                    <span class="status-dot" id="aiStatus"></span>
+                </button>
+                <button class="nav-button primary" onclick="showExportOptions()">
+                    <svg class="btn-icon" viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="white"/>
+                    </svg>
+                    导出
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <!-- 编辑器卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+                        </svg>
+                        代码编辑器
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <textarea id="erCode" class="form-textarea">// 实体定义
+entity: 员工
+  pk: 员工编号
+  attr: 姓名
+  attr: 性别
+  attr: 出生日期
+  attr: 电话
+
+entity: 部门
+  pk: 部门编号
+  attr: 部门名称
+  attr: 位置
+
+entity: 项目
+  pk: 项目编号
+  attr: 项目名称
+  attr: 开始日期
+  attr: 结束日期
+  attr: 预算
+
+entity: 客户
+  pk: 客户编号
+  attr: 客户名称
+  attr: 联系人
+  attr: 电话
+
+relation: 隶属
+  from: 员工 (N)
+  to: 部门 (1)
+
+relation: 管理
+  from: 员工 (1)
+  to: 项目 (N)
+
+relation: 参与
+  from: 员工 (N)
+  to: 项目 (N)
+
+relation: 合作
+  from: 项目 (N)
+  to: 客户 (1)</textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="generateERDiagram()">
+                        <svg class="btn-icon" viewBox="0 0 24 24">
+                            <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-11 14l-5-5 1.41-1.41L8 14.17l7.59-7.59L19 8l-9 9z" fill="white"/>
+                        </svg>
+                        生成ER图
+                    </button>
+                </div>
+            </div>
+
+            <!-- 语法指南卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                        </svg>
+                        语法指南
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="syntax-guide">
+                        <h4>实体定义</h4>
+                        <pre>entity: 实体名
+  pk: 主键字段
+  attr: 属性1
+  attr: 属性2</pre>
+                        
+                        <h4 style="margin-top: 16px;">关系定义</h4>
+                        <pre>relation: 关系名
+  from: 实体1 (基数)
+  to: 实体2 (基数)</pre>
+                        
+                        <p style="margin-top: 12px; font-size: 12px;">基数表示: 1, N, M 等</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI 功能卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <svg class="card-icon" viewBox="0 0 24 24">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                        AI 助手
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">描述你的数据库需求</label>
+                        <textarea class="form-input" rows="3" placeholder="例如：创建一个学生选课系统的ER图" id="aiPrompt"></textarea>
+                    </div>
+                    <button class="btn btn-success btn-block" onclick="generateWithAI()">
+                        <svg class="btn-icon" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="white"/>
+                        </svg>
+                        AI 生成
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div class="toolbar-section">
+                    <h2 class="toolbar-title">ER图预览</h2>
+                </div>
+                <div class="toolbar-section">
+                    <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 12px;">
+                        <label class="form-label" style="margin: 0;">标题:</label>
+                        <input type="text" class="form-input" id="diagramTitle" value="企业人事管理系统" style="width: 300px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 预览容器 -->
+            <div class="preview-container">
+                <div class="preview-header">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">实时预览</span>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn" onclick="zoomIn()">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                                </svg>
+                            </button>
+                            <button class="btn" onclick="zoomOut()">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M19 13H5v-2h14v2z"/>
+                                </svg>
+                            </button>
+                            <button class="btn" onclick="resetZoom()">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-body">
+                    <div id="svgContainer"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 导出选项模态框 -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">导出选项</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">选择导出格式</label>
+                    <div style="display: flex; gap: 12px; margin-top: 12px;">
+                        <button class="btn btn-primary" style="flex: 1" onclick="exportSVG()">
+                            <svg class="btn-icon" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" fill="white"/>
+                            </svg>
+                            导出为 SVG
+                        </button>
+                        <button class="btn btn-success" style="flex: 1" onclick="exportPNG()">
+                            <svg class="btn-icon" viewBox="0 0 24 24">
+                                <path d="M19,11H5A2,2 0 0,0 3,13V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V13A2,2 0 0,0 19,11M5,19V13H19V19H5M7,5H11V7H7V5M13,5H17V9H13V5Z" fill="white"/>
+                            </svg>
+                            导出为 PNG
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label class="form-label">导出设置</label>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                        <label style="font-size: 14px; color: var(--text-secondary);">缩放比例:</label>
+                        <input type="number" class="form-input" id="exportScale" value="2" min="1" max="5" step="0.5" style="width: 100px;">
+                        <span style="font-size: 12px; color: var(--text-tertiary);">倍</span>
+                    </div>
+                    <p class="form-helper">PNG导出时的图片质量，建议使用2倍以上</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeExportModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 配置模态框 -->
+    <div class="modal" id="aiConfigModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">AI 配置</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">API 提供商</label>
+                    <select class="form-select" id="apiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="custom">自定义 API</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">模型名称</label>
+                    <input type="text" class="form-input" id="aiModel" placeholder="例如: gpt-4, claude-3-opus, llama-2-70b" value="gpt-3.5-turbo">
+                    <p class="form-helper">输入您要使用的模型名称</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <input type="password" class="form-input" id="apiKey" placeholder="sk-...">
+                    <p class="form-helper">API Key 仅保存在本地浏览器中</p>
+                </div>
+                
+                <div class="form-group" id="customEndpointGroup" style="display: none;">
+                    <label class="form-label">API 端点</label>
+                    <input type="text" class="form-input" id="apiEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeAIConfig()">取消</button>
+                <button class="btn btn-primary" onclick="saveAIConfig()">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast">
+        <svg class="toast-icon" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+        <span id="toastMessage">操作成功</span>
+    </div>
+
+    <script>
+        // AI 配置
+        const aiConfig = {
+            provider: localStorage.getItem('aiProvider') || 'openai',
+            model: localStorage.getItem('aiModel') || 'gpt-3.5-turbo',
+            apiKey: localStorage.getItem('apiKey') || '',
+            endpoint: localStorage.getItem('apiEndpoint') || ''
+        };
+
+        let currentZoom = 1;
+
+        // 更新 AI 状态指示器
+        function updateAIStatus() {
+            const statusDot = document.getElementById('aiStatus');
+            if (aiConfig.apiKey) {
+                statusDot.classList.add('connected');
+            } else {
+                statusDot.classList.remove('connected');
+            }
+        }
+
+        // 显示 AI 配置模态框
+        function showAIConfig() {
+            const modal = document.getElementById('aiConfigModal');
+            modal.classList.add('active');
+            
+            // 填充当前配置
+            document.getElementById('apiProvider').value = aiConfig.provider;
+            document.getElementById('aiModel').value = aiConfig.model;
+            document.getElementById('apiKey').value = aiConfig.apiKey;
+            document.getElementById('apiEndpoint').value = aiConfig.endpoint;
+            
+            // 显示/隐藏自定义端点
+            toggleCustomEndpoint();
+        }
+
+        // 关闭 AI 配置模态框
+        function closeAIConfig() {
+            const modal = document.getElementById('aiConfigModal');
+            modal.classList.remove('active');
+        }
+
+        // 保存 AI 配置
+        function saveAIConfig() {
+            aiConfig.provider = document.getElementById('apiProvider').value;
+            aiConfig.model = document.getElementById('aiModel').value;
+            aiConfig.apiKey = document.getElementById('apiKey').value;
+            aiConfig.endpoint = document.getElementById('apiEndpoint').value;
+            
+            // 保存到本地存储
+            localStorage.setItem('aiProvider', aiConfig.provider);
+            localStorage.setItem('aiModel', aiConfig.model);
+            localStorage.setItem('apiKey', aiConfig.apiKey);
+            localStorage.setItem('apiEndpoint', aiConfig.endpoint);
+            
+            updateAIStatus();
+            closeAIConfig();
+            showToast('AI 配置已保存', 'success');
+        }
+
+        // 切换自定义端点显示
+        function toggleCustomEndpoint() {
+            const provider = document.getElementById('apiProvider').value;
+            const customGroup = document.getElementById('customEndpointGroup');
+            
+            if (provider === 'custom') {
+                customGroup.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+            }
+        }
+
+        // 显示 Toast 提示
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // AI 生成功能
+        async function generateWithAI() {
+            const prompt = document.getElementById('aiPrompt').value;
+            
+            if (!prompt) {
+                showToast('请输入需求描述', 'error');
+                return;
+            }
+            
+            if (!aiConfig.apiKey) {
+                showToast('请先配置 AI API', 'error');
+                showAIConfig();
+                return;
+            }
+            
+            // 显示加载状态
+            const btn = event.target.closest('button');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> 生成中...';
+            btn.disabled = true;
+            
+            try {
+                const systemPrompt = `你是一个数据库设计专家。请根据用户的需求，生成符合以下格式的ER图代码：
+
+格式说明：
+1. 实体定义：
+   entity: 实体名
+     pk: 主键字段名
+     attr: 属性1
+     attr: 属性2
+
+2. 关系定义：
+   relation: 关系名
+     from: 实体1 (基数)
+     to: 实体2 (基数)
+
+基数可以是：1, N, M 等
+
+请直接返回符合格式的代码，不要包含其他解释文字。`;
+
+                let apiUrl, headers, body;
+                
+                if (aiConfig.provider === 'openai') {
+                    apiUrl = 'https://api.openai.com/v1/chat/completions';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${aiConfig.apiKey}`
+                    };
+                    body = JSON.stringify({
+                        model: aiConfig.model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.7
+                    });
+                } else if (aiConfig.provider === 'anthropic') {
+                    apiUrl = 'https://api.anthropic.com/v1/messages';
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'x-api-key': aiConfig.apiKey,
+                        'anthropic-version': '2023-06-01'
+                    };
+                    body = JSON.stringify({
+                        model: aiConfig.model,
+                        system: systemPrompt,
+                        messages: [
+                            { role: 'user', content: prompt }
+                        ],
+                        max_tokens: 1000
+                    });
+                } else {
+                    apiUrl = aiConfig.endpoint;
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${aiConfig.apiKey}`
+                    };
+                    body = JSON.stringify({
+                        model: aiConfig.model,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: prompt }
+                        ]
+                    });
+                }
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: body
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API 请求失败: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                let generatedCode;
+                
+                if (aiConfig.provider === 'openai' || aiConfig.provider === 'custom') {
+                    generatedCode = data.choices[0].message.content;
+                } else if (aiConfig.provider === 'anthropic') {
+                    generatedCode = data.content[0].text;
+                }
+                
+                // 更新编辑器内容
+                document.getElementById('erCode').value = generatedCode;
+                
+                // 自动生成图表
+                generateERDiagram();
+                
+                showToast('AI 生成成功', 'success');
+                
+            } catch (error) {
+                console.error('AI 生成错误:', error);
+                showToast('AI 生成失败: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+
+        // 缩放功能
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom * 1.2, 3);
+            applyZoom();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom / 1.2, 0.3);
+            applyZoom();
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const svg = document.querySelector('#svgContainer svg');
+            if (svg) {
+                svg.style.transform = `scale(${currentZoom})`;
+                svg.style.transformOrigin = 'center';
+            }
+        }
+
+        // 显示导出选项
+        function showExportOptions() {
+            const modal = document.getElementById('exportModal');
+            modal.classList.add('active');
+        }
+
+        // 关闭导出模态框
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            modal.classList.remove('active');
+        }
+
+        // 导出为 PNG
+        async function exportPNG() {
+            const svg = document.querySelector('#svgContainer svg');
+            if (!svg) {
+                showToast('请先生成ER图', 'error');
+                return;
+            }
+            
+            try {
+                // 获取缩放比例
+                const scale = parseFloat(document.getElementById('exportScale').value) || 2;
+                
+                // 获取SVG的原始尺寸
+                const svgWidth = parseFloat(svg.getAttribute('width'));
+                const svgHeight = parseFloat(svg.getAttribute('height'));
+                
+                // 创建canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = svgWidth * scale;
+                canvas.height = svgHeight * scale;
+                
+                const ctx = canvas.getContext('2d');
+                
+                // 设置白色背景
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 缩放上下文
+                ctx.scale(scale, scale);
+                
+                // 将SVG转换为图片
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const svgUrl = URL.createObjectURL(svgBlob);
+                
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // 转换为PNG并下载
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${document.getElementById('diagramTitle').value || 'ER图'}.png`;
+                        a.click();
+                        
+                        URL.revokeObjectURL(url);
+                        URL.revokeObjectURL(svgUrl);
+                        
+                        closeExportModal();
+                        showToast('PNG导出成功', 'success');
+                    }, 'image/png');
+                };
+                
+                img.onerror = function() {
+                    throw new Error('SVG转换失败');
+                };
+                
+                img.src = svgUrl;
+                
+            } catch (error) {
+                console.error('PNG导出错误:', error);
+                showToast('PNG导出失败: ' + error.message, 'error');
+            }
+        }
+
+        // 导出 SVG
+        function exportSVG() {
+            const svg = document.querySelector('#svgContainer svg');
+            if (!svg) {
+                showToast('请先生成ER图', 'error');
+                return;
+            }
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${document.getElementById('diagramTitle').value || 'ER图'}.svg`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            closeExportModal();
+            showToast('SVG导出成功', 'success');
+        }
+
+        // 解析ER图代码
+        function parseERCode(code) {
+            const entities = [];
+            const relations = [];
+            
+            let currentEntity = null;
+            let currentRelation = null;
+            
+            const lines = code.split('\n');
+            
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine === '' || trimmedLine.startsWith('//')) continue;
+                
+                // 实体定义
+                if (trimmedLine.startsWith('entity:')) {
+                    if (currentEntity) entities.push(currentEntity);
+                    if (currentRelation) relations.push(currentRelation);
+                    
+                    currentEntity = {
+                        name: trimmedLine.substring(7).trim(),
+                        pk: null,
+                        attributes: []
+                    };
+                    currentRelation = null;
+                }
+                // 主键定义
+                else if (trimmedLine.startsWith('pk:') && currentEntity) {
+                    currentEntity.pk = trimmedLine.substring(3).trim();
+                }
+                // 属性定义
+                else if (trimmedLine.startsWith('attr:') && currentEntity) {
+                    currentEntity.attributes.push(trimmedLine.substring(5).trim());
+                }
+                // 关系定义
+                else if (trimmedLine.startsWith('relation:')) {
+                    if (currentEntity) entities.push(currentEntity);
+                    if (currentRelation) relations.push(currentRelation);
+                    
+                    currentEntity = null;
+                    currentRelation = {
+                        name: trimmedLine.substring(9).trim(),
+                        from: null,
+                        to: null
+                    };
+                }
+                // 关系源
+                else if (trimmedLine.startsWith('from:') && currentRelation) {
+                    const match = trimmedLine.match(/from:\s+([^\(]+)\s+\(([^\)]+)\)/);
+                    if (match) {
+                        currentRelation.from = {
+                            entity: match[1].trim(),
+                            cardinality: match[2].trim()
+                        };
+                    }
+                }
+                // 关系目标
+                else if (trimmedLine.startsWith('to:') && currentRelation) {
+                    const match = trimmedLine.match(/to:\s+([^\(]+)\s+\(([^\)]+)\)/);
+                    if (match) {
+                        currentRelation.to = {
+                            entity: match[1].trim(),
+                            cardinality: match[2].trim()
+                        };
+                    }
+                }
+            }
+            
+            // 添加最后一个实体或关系
+            if (currentEntity) entities.push(currentEntity);
+            if (currentRelation) relations.push(currentRelation);
+            
+            return { entities, relations };
+        }
+        
+        // 创建ER图布局
+        function createLayout(entities, relations) {
+            // 基础画布尺寸设置
+            const minWidth = 1200;
+            const minHeight = 900;
+            const width = Math.max(minWidth, entities.length * 300);
+            const height = Math.max(minHeight, entities.length * 250);
+            
+            const layout = {
+                width: width,
+                height: height,
+                entities: {},
+                relations: {}
+            };
+            
+            // 实体位置分配 - 改进的分区策略
+            if (entities.length <= 4) {
+                // 使用更合理的四角布局
+                const positions = [
+                    { x: width / 2, y: height * 0.25 },  // 上
+                    { x: width * 0.25, y: height / 2 },  // 左
+                    { x: width * 0.75, y: height / 2 },  // 右
+                    { x: width / 2, y: height * 0.75 }   // 下
+                ];
+                
+                entities.forEach((entity, index) => {
+                    layout.entities[entity.name] = {
+                        x: positions[index].x,
+                        y: positions[index].y,
+                        width: 120,
+                        height: 60,
+                        attributes: [],
+                        section: index // 记录实体所在区域（上/左/右/下）
+                    };
+                });
+            } else {
+                // 多实体情况下的均匀分布
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = Math.min(width, height) * 0.3;
+                
+                entities.forEach((entity, index) => {
+                    const angle = (index * 2 * Math.PI) / entities.length;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    
+                    // 确定区域象限
+                    let section;
+                    if (y < centerY && Math.abs(x - centerX) < radius * 0.5) section = 0; // 上
+                    else if (x < centerX && Math.abs(y - centerY) < radius * 0.5) section = 1; // 左
+                    else if (x > centerX && Math.abs(y - centerY) < radius * 0.5) section = 2; // 右
+                    else section = 3; // 下
+                    
+                    layout.entities[entity.name] = {
+                        x: x,
+                        y: y,
+                        width: 120,
+                        height: 60,
+                        attributes: [],
+                        section: section
+                    };
+                });
+            }
+            
+            // 属性布局优化 - 根据实体区域确定属性位置
+            const occupiedSpaces = []; // 记录所有已占用的空间
+            
+            // 先添加所有实体占用的空间
+            for (const [entityName, entityLayout] of Object.entries(layout.entities)) {
+                occupiedSpaces.push({
+                    x: entityLayout.x,
+                    y: entityLayout.y,
+                    width: entityLayout.width + 20, // 额外边距
+                    height: entityLayout.height + 20,
+                    type: 'entity'
+                });
+            }
+            
+            // 为每个实体分配属性空间
+            for (const [entityName, entityLayout] of Object.entries(layout.entities)) {
+                const entity = entities.find(e => e.name === entityName);
+                if (!entity) continue;
+                
+                // 收集属性
+                const allAttributes = [];
+                if (entity.pk) {
+                    allAttributes.push({ name: entity.pk, isPk: true });
+                }
+                
+                entity.attributes.forEach(attr => {
+                    allAttributes.push({ name: attr, isPk: false });
+                });
+                
+                // 根据实体区域确定属性首选方向
+                let preferredDirections = [];
+                
+                switch(entityLayout.section) {
+                    case 0: // 上方实体
+                        preferredDirections = ['top', 'left', 'right', 'bottom'];
+                        break;
+                    case 1: // 左侧实体
+                        preferredDirections = ['left', 'top', 'bottom', 'right'];
+                        break;
+                    case 2: // 右侧实体
+                        preferredDirections = ['right', 'top', 'bottom', 'left'];
+                        break;
+                    case 3: // 下方实体
+                        preferredDirections = ['bottom', 'left', 'right', 'top'];
+                        break;
+                }
+                
+                // 为主键找最优位置（首选方向）
+                let pkIndex = allAttributes.findIndex(attr => attr.isPk);
+                if (pkIndex >= 0) {
+                    const pk = allAttributes[pkIndex];
+                    const bestDirection = findBestDirection(entityLayout, pk, preferredDirections[0], occupiedSpaces);
+                    
+                    // 放置主键
+                    const pkPosition = positionInDirection(entityLayout, bestDirection, 120);
+                    
+                    entityLayout.pk = {
+                        x: pkPosition.x,
+                        y: pkPosition.y,
+                        width: 60,
+                        height: 35,
+                        name: pk.name
+                    };
+                    
+                    // 添加到已占用空间
+                    occupiedSpaces.push({
+                        x: pkPosition.x,
+                        y: pkPosition.y,
+                        width: 130, // 为了避免重叠增加了空间
+                        height: 80,
+                        type: 'pk'
+                    });
+                    
+                    // 从属性列表移除
+                    allAttributes.splice(pkIndex, 1);
+                }
+                
+                // 为普通属性找位置（尽量按首选方向，但可调整避免重叠）
+                allAttributes.forEach((attr, i) => {
+                    // 尝试每个方向直到找到合适位置
+                    let bestDirection = null;
+                    let bestPosition = null;
+                    
+                    // 尝试所有方向
+                    for (const direction of preferredDirections) {
+                        // 生成候选位置（带偏移）
+                        for (let offset = 0; offset <= 4; offset++) {
+                            const distance = 120 + offset * 20; // 逐渐增加距离
+                            const angleOffset = (offset * 0.1) * (i % 2 === 0 ? 1 : -1); // 左右交替偏移
+                            
+                            const position = positionInDirection(entityLayout, direction, distance, angleOffset);
+                            
+                            // 检查是否与已占用空间重叠
+                            if (!hasOverlap(position, occupiedSpaces)) {
+                                bestDirection = direction;
+                                bestPosition = position;
+                                break;
+                            }
+                        }
+                        
+                        if (bestPosition) break; // 找到了就停止寻找
+                    }
+                    
+                    // 如果没找到无重叠位置，取最后一个方向的位置并强制增加距离
+                    if (!bestPosition) {
+                        const lastDirection = preferredDirections[preferredDirections.length - 1];
+                        bestPosition = positionInDirection(entityLayout, lastDirection, 200 + i * 30);
+                    }
+                    
+                    // 放置属性
+                    const attrObj = {
+                        x: bestPosition.x,
+                        y: bestPosition.y,
+                        width: 55,
+                        height: 30,
+                        name: attr.name
+                    };
+                    
+                    entityLayout.attributes.push(attrObj);
+                    
+                    // 添加到已占用空间
+                    occupiedSpaces.push({
+                        x: bestPosition.x,
+                        y: bestPosition.y,
+                        width: 120,
+                        height: 70,
+                        type: 'attr'
+                    });
+                });
+            }
+            
+            // 关系位置优化 - 动态调整关系菱形位置
+            relations.forEach(relation => {
+                const fromEntity = layout.entities[relation.from.entity];
+                const toEntity = layout.entities[relation.to.entity];
+                
+                if (fromEntity && toEntity) {
+                    // 计算两实体中点
+                    const dx = toEntity.x - fromEntity.x;
+                    const dy = toEntity.y - fromEntity.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 动态调整居中比例 - 距离越远比例越接近0.5
+                    const ratio = 0.4 + (distance / 1500); // 调整系数使布局更紧凑
+                    const midX = fromEntity.x + dx * ratio;
+                    const midY = fromEntity.y + dy * ratio;
+                    
+                    // 寻找无重叠位置
+                    let bestX = midX;
+                    let bestY = midY;
+                    let minOverlaps = Number.MAX_VALUE;
+                    
+                    // 在中点附近探索多个位置
+                    for (let offsetX = -60; offsetX <= 60; offsetX += 20) {
+                        for (let offsetY = -60; offsetY <= 60; offsetY += 20) {
+                            const testX = midX + offsetX;
+                            const testY = midY + offsetY;
+                            
+                            // 计算此位置与已有组件的重叠数
+                            let overlaps = 0;
+                            for (const space of occupiedSpaces) {
+                                if (isPointInRect(testX, testY, space)) {
+                                    overlaps++;
+                                }
+                            }
+                            
+                            // 如果有更少重叠，更新最佳位置
+                            if (overlaps < minOverlaps) {
+                                minOverlaps = overlaps;
+                                bestX = testX;
+                                bestY = testY;
+                                
+                                // 如果没有重叠，立即使用
+                                if (overlaps === 0) break;
+                            }
+                        }
+                        if (minOverlaps === 0) break;
+                    }
+                    
+                    // 如果还是有重叠，再增加搜索范围
+                    if (minOverlaps > 0) {
+                        const perpX = -dy / distance * 100; // 垂直于连线方向
+                        const perpY = dx / distance * 100;
+                        
+                        // 尝试垂直偏移
+                        bestX = midX + perpX;
+                        bestY = midY + perpY;
+                        
+                        // 检查是否仍有重叠
+                        let stillOverlap = false;
+                        for (const space of occupiedSpaces) {
+                            if (isPointInRect(bestX, bestY, space)) {
+                                stillOverlap = true;
+                                break;
+                            }
+                        }
+                        
+                        // 如有必要，尝试反方向
+                        if (stillOverlap) {
+                            bestX = midX - perpX;
+                            bestY = midY - perpY;
+                        }
+                    }
+                    
+                    // 保存最终关系位置
+                    layout.relations[relation.name] = {
+                        x: bestX,
+                        y: bestY,
+                        width: 45,
+                        height: 25,
+                        from: relation.from,
+                        to: relation.to
+                    };
+                    
+                    // 添加到已占用空间
+                    occupiedSpaces.push({
+                        x: bestX,
+                        y: bestY,
+                        width: 100,
+                        height: 60,
+                        type: 'relation'
+                    });
+                }
+            });
+            
+            return layout;
+        }
+        
+        // 辅助函数: 检查位置是否与已占用空间重叠
+        function hasOverlap(position, occupiedSpaces) {
+            const testRect = {
+                x: position.x,
+                y: position.y,
+                width: 120, // 属性空间
+                height: 70
+            };
+            
+            for (const space of occupiedSpaces) {
+                if (doRectsOverlap(testRect, space)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // 矩形重叠检测
+        function doRectsOverlap(rect1, rect2) {
+            const minDistance = (rect1.width + rect2.width) / 2 * 0.8; // 80%宽度作为水平安全距离
+            const minVertical = (rect1.height + rect2.height) / 2 * 0.8; // 80%高度作为垂直安全距离
+            
+            const dx = Math.abs(rect1.x - rect2.x);
+            const dy = Math.abs(rect1.y - rect2.y);
+            
+            return dx < minDistance && dy < minVertical;
+        }
+        
+        // 检查点是否在矩形内（或距离过近）
+        function isPointInRect(x, y, rect) {
+            const halfWidth = rect.width / 2;
+            const halfHeight = rect.height / 2;
+            
+            return Math.abs(x - rect.x) < halfWidth && 
+                   Math.abs(y - rect.y) < halfHeight;
+        }
+        
+        // 在指定方向上找位置（带角度偏移）
+        function positionInDirection(entityLayout, direction, distance, angleOffset = 0) {
+            let angle;
+            
+            switch(direction) {
+                case 'top':
+                    angle = -Math.PI/2 + (angleOffset || 0);
+                    break;
+                case 'right':
+                    angle = 0 + (angleOffset || 0);
+                    break;
+                case 'bottom':
+                    angle = Math.PI/2 + (angleOffset || 0);
+                    break;
+                case 'left':
+                    angle = Math.PI + (angleOffset || 0);
+                    break;
+            }
+            
+            return {
+                x: entityLayout.x + Math.cos(angle) * distance,
+                y: entityLayout.y + Math.sin(angle) * distance
+            };
+        }
+        
+        // 找到最佳方向（最少重叠）
+        function findBestDirection(entityLayout, attr, preferredDirection, occupiedSpaces) {
+            const directions = ['top', 'right', 'bottom', 'left'];
+            let bestDirection = preferredDirection;
+            let minOverlaps = Number.MAX_VALUE;
+            
+            // 尝试所有方向
+            for (const direction of directions) {
+                const position = positionInDirection(entityLayout, direction, 120);
+                
+                // 计算此方向的重叠
+                let overlaps = 0;
+                for (const space of occupiedSpaces) {
+                    if (isPointInRect(position.x, position.y, space)) {
+                        overlaps++;
+                    }
+                }
+                
+                // 优先考虑首选方向，但也要权衡重叠情况
+                const directionPenalty = (direction === preferredDirection) ? 0 : 1;
+                const score = overlaps + directionPenalty;
+                
+                if (score < minOverlaps) {
+                    minOverlaps = score;
+                    bestDirection = direction;
+                }
+            }
+            
+            return bestDirection;
+        }
+        
+        // 计算实体与关系之间的连接点
+        function calculateConnectionPoint(entity, relation) {
+            const dx = relation.x - entity.x;
+            const dy = relation.y - entity.y;
+            const angle = Math.atan2(dy, dx);
+            
+            // 计算矩形边界上的交点
+            let intersectX, intersectY;
+            
+            // 计算水平和垂直方向的交点距离
+            const width = entity.width / 2;
+            const height = entity.height / 2;
+            
+            // 处理特殊情况 - 垂直或水平线
+            if (Math.abs(dx) < 0.001) { // 垂直线
+                intersectX = entity.x;
+                intersectY = entity.y + Math.sign(dy) * height;
+            } else if (Math.abs(dy) < 0.001) { // 水平线
+                intersectX = entity.x + Math.sign(dx) * width;
+                intersectY = entity.y;
+            } else {
+                // 一般情况 - 计算与矩形边界的交点
+                const slope = dy / dx;
+                const invSlope = dx / dy;
+                
+                // 检查与垂直边界的交点
+                const vertX = entity.x + Math.sign(dx) * width;
+                const vertY = entity.y + slope * (vertX - entity.x);
+                
+                // 检查与水平边界的交点
+                const horizY = entity.y + Math.sign(dy) * height;
+                const horizX = entity.x + invSlope * (horizY - entity.y);
+                
+                // 选择最接近实体中心的交点
+                const dxVert = Math.abs(vertX - entity.x);
+                const dyVert = Math.abs(vertY - entity.y);
+                const dVert = Math.sqrt(dxVert * dxVert + dyVert * dyVert);
+                
+                const dxHoriz = Math.abs(horizX - entity.x);
+                const dyHoriz = Math.abs(horizY - entity.y);
+                const dHoriz = Math.sqrt(dxHoriz * dxHoriz + dyHoriz * dyHoriz);
+                
+                if (dVert <= dHoriz && Math.abs(vertY - entity.y) <= height) {
+                    intersectX = vertX;
+                    intersectY = vertY;
+                } else if (Math.abs(horizX - entity.x) <= width) {
+                    intersectX = horizX;
+                    intersectY = horizY;
+                } else {
+                    // 边缘情况 - 使用角点
+                    intersectX = entity.x + Math.sign(dx) * width;
+                    intersectY = entity.y + Math.sign(dy) * height;
+                }
+            }
+            
+            return { x: intersectX, y: intersectY };
+        }
+        
+        // 计算实体到属性的连接点
+        function calculateEntityToAttributeConnection(entity, attribute) {
+            const dx = attribute.x - entity.x;
+            const dy = attribute.y - entity.y;
+            const angle = Math.atan2(dy, dx);
+            
+            // 同样的方法，但简化版本
+            const width = entity.width / 2;
+            const height = entity.height / 2;
+            
+            // 考虑特殊情况
+            if (Math.abs(dx) < 0.001) { // 垂直线
+                return {
+                    x: entity.x,
+                    y: entity.y + Math.sign(dy) * height
+                };
+            } else if (Math.abs(dy) < 0.001) { // 水平线
+                return {
+                    x: entity.x + Math.sign(dx) * width,
+                    y: entity.y
+                };
+            } else {
+                // 一般情况
+                const slope = dy / dx;
+                
+                // 比较水平和垂直交点
+                const tx = width / Math.abs(Math.cos(angle));
+                const ty = height / Math.abs(Math.sin(angle));
+                
+                if (tx < ty) {
+                    return {
+                        x: entity.x + Math.sign(dx) * width,
+                        y: entity.y + slope * Math.sign(dx) * width
+                    };
+                } else {
+                    return {
+                        x: entity.x + Math.sign(dy) * height / slope,
+                        y: entity.y + Math.sign(dy) * height
+                    };
+                }
+            }
+        }
+        
+        // 计算属性到实体的连接点 (用于椭圆)
+        function calculateAttributeToEntityConnection(attribute, entity) {
+            const dx = entity.x - attribute.x;
+            const dy = entity.y - attribute.y;
+            const angle = Math.atan2(dy, dx);
+            
+            // 椭圆上的点
+            return {
+                x: attribute.x + Math.cos(angle) * attribute.width,
+                y: attribute.y + Math.sin(angle) * attribute.height
+            };
+        }
+        
+        // 生成SVG - 使用现代化样式
+        function generateSVG(entities, relations, layout, title) {
+            // 定义现代化的颜色方案
+            const colors = {
+                entity: {
+                    fill: '#e0e7ff',
+                    stroke: '#6366f1',
+                    text: '#4338ca'
+                },
+                pk: {
+                    fill: '#fef3c7',
+                    stroke: '#f59e0b',
+                    text: '#d97706'
+                },
+                attr: {
+                    fill: '#f3f4f6',
+                    stroke: '#9ca3af',
+                    text: '#4b5563'
+                },
+                relation: {
+                    fill: '#dbeafe',
+                    stroke: '#3b82f6',
+                    text: '#1e40af'
+                },
+                line: {
+                    entity: '#6b7280',
+                    pk: '#f59e0b',
+                    attr: '#9ca3af'
+                }
+            };
+            
+            // 首先准备SVG容器
+            let svgContent = `
+            <svg width="${layout.width}" height="${layout.height}" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <!-- 定义阴影效果 -->
+                    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                        <feOffset dx="0" dy="2" result="offsetblur"/>
+                        <feFlood flood-color="#000000" flood-opacity="0.1"/>
+                        <feComposite in2="offsetblur" operator="in"/>
+                        <feMerge>
+                            <feMergeNode/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    
+                    <!-- 定义渐变效果 -->
+                    <linearGradient id="entityGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#e0e7ff;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#c7d2fe;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+            `;
+            
+            // 添加标题
+            svgContent += `
+                <text x="${layout.width/2}" y="50" text-anchor="middle" font-size="28" font-weight="700" fill="#1e293b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${title}</text>
+            `;
+            
+            // 创建分层SVG - 确保正确的Z顺序
+            // 1. 底层：所有连接线
+            let linesLayer = '<g id="lines-layer">\n';
+            
+            // 实体-属性连接线（先画，保证在最底层）
+            for (const [entityName, entityLayout] of Object.entries(layout.entities)) {
+                // 主键连接线
+                if (entityLayout.pk) {
+                    const pk = entityLayout.pk;
+                    
+                    // 计算精确的连接点
+                    const entityConnection = calculateEntityToAttributeConnection(entityLayout, pk);
+                    const pkConnection = calculateAttributeToEntityConnection(pk, entityLayout);
+                    
+                    linesLayer += `
+                        <line x1="${entityConnection.x}" y1="${entityConnection.y}" x2="${pkConnection.x}" y2="${pkConnection.y}" 
+                              stroke="${colors.line.pk}" stroke-width="2" opacity="0.8" />
+                    `;
+                }
+                
+                // 普通属性连接线
+                entityLayout.attributes.forEach(attr => {
+                    // 计算精确的连接点
+                    const entityConnection = calculateEntityToAttributeConnection(entityLayout, attr);
+                    const attrConnection = calculateAttributeToEntityConnection(attr, entityLayout);
+                    
+                    linesLayer += `
+                        <line x1="${entityConnection.x}" y1="${entityConnection.y}" x2="${attrConnection.x}" y2="${attrConnection.y}" 
+                              stroke="${colors.line.attr}" stroke-width="1.5" opacity="0.6" stroke-dasharray="4 2" />
+                    `;
+                });
+            }
+            
+            // 2. 实体-关系连接线
+            for (const [relationName, relationLayout] of Object.entries(layout.relations)) {
+                const fromEntity = layout.entities[relationLayout.from.entity];
+                const toEntity = layout.entities[relationLayout.to.entity];
+                
+                if (fromEntity && toEntity) {
+                    // 计算精确的连接点
+                    const fromConnection = calculateConnectionPoint(fromEntity, relationLayout);
+                    const toConnection = calculateConnectionPoint(toEntity, relationLayout);
+                    
+                    // 实体-关系连接线
+                    linesLayer += `
+                        <line x1="${fromConnection.x}" y1="${fromConnection.y}" x2="${relationLayout.x}" y2="${relationLayout.y}" 
+                              stroke="${colors.line.entity}" stroke-width="2" opacity="0.8" />
+                        <line x1="${relationLayout.x}" y1="${relationLayout.y}" x2="${toConnection.x}" y2="${toConnection.y}" 
+                              stroke="${colors.line.entity}" stroke-width="2" opacity="0.8" />
+                    `;
+                    
+                    // 基数标记位置 - 距离实体连接点1/4处
+                    const fromCardX = fromConnection.x + (relationLayout.x - fromConnection.x) * 0.25;
+                    const fromCardY = fromConnection.y + (relationLayout.y - fromConnection.y) * 0.25;
+                    
+                    const toCardX = toConnection.x + (relationLayout.x - toConnection.x) * 0.25;
+                    const toCardY = toConnection.y + (relationLayout.y - toConnection.y) * 0.25;
+                    
+                    // 基数文本 - 直接显示，无背景
+                    linesLayer += `
+                        <text x="${fromCardX}" y="${fromCardY}" text-anchor="middle" dominant-baseline="middle" 
+                              font-weight="700" font-size="18" fill="#dc2626" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${relationLayout.from.cardinality}</text>
+                        <text x="${toCardX}" y="${toCardY}" text-anchor="middle" dominant-baseline="middle" 
+                              font-weight="700" font-size="18" fill="#dc2626" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${relationLayout.to.cardinality}</text>
+                    `;
+                }
+            }
+            
+            linesLayer += '</g>\n';
+            
+            // 3. 中层：关系菱形
+            let relationshipsLayer = '<g id="relationships-layer">\n';
+            
+            for (const [relationName, relationLayout] of Object.entries(layout.relations)) {
+                const x = relationLayout.x;
+                const y = relationLayout.y;
+                const w = relationLayout.width;
+                const h = relationLayout.height;
+                
+                relationshipsLayer += `
+                    <polygon points="${x},${y-h} ${x+w},${y} ${x},${y+h} ${x-w},${y}" 
+                             fill="${colors.relation.fill}" stroke="${colors.relation.stroke}" stroke-width="2" 
+                             filter="url(#dropShadow)" />
+                    <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" 
+                          font-size="14" font-weight="500" fill="${colors.relation.text}" 
+                          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${relationName}</text>
+                `;
+            }
+            
+            relationshipsLayer += '</g>\n';
+            
+            // 4. 上层：实体矩形和属性椭圆
+            let entitiesLayer = '<g id="entities-layer">\n';
+            
+            for (const [entityName, entityLayout] of Object.entries(layout.entities)) {
+                // 绘制属性椭圆
+                // 先画主键
+                if (entityLayout.pk) {
+                    const pk = entityLayout.pk;
+                    entitiesLayer += `
+                        <ellipse cx="${pk.x}" cy="${pk.y}" rx="${pk.width}" ry="${pk.height}" 
+                                fill="${colors.pk.fill}" stroke="${colors.pk.stroke}" stroke-width="2" 
+                                filter="url(#dropShadow)" />
+                        <text x="${pk.x}" y="${pk.y}" text-anchor="middle" dominant-baseline="middle" 
+                              font-size="14" font-weight="600" fill="${colors.pk.text}"
+                              font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${pk.name}</text>
+                    `;
+                }
+                
+                // 普通属性
+                entityLayout.attributes.forEach(attr => {
+                    entitiesLayer += `
+                        <ellipse cx="${attr.x}" cy="${attr.y}" rx="${attr.width}" ry="${attr.height}" 
+                                fill="${colors.attr.fill}" stroke="${colors.attr.stroke}" stroke-width="1.5" 
+                                filter="url(#dropShadow)" />
+                        <text x="${attr.x}" y="${attr.y}" text-anchor="middle" dominant-baseline="middle" 
+                              font-size="14" fill="${colors.attr.text}"
+                              font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${attr.name}</text>
+                    `;
+                });
+                
+                // 绘制实体矩形
+                entitiesLayer += `
+                    <rect x="${entityLayout.x - entityLayout.width/2}" y="${entityLayout.y - entityLayout.height/2}" 
+                          width="${entityLayout.width}" height="${entityLayout.height}" rx="8" ry="8"
+                          fill="url(#entityGradient)" stroke="${colors.entity.stroke}" stroke-width="2" 
+                          filter="url(#dropShadow)" />
+                    <text x="${entityLayout.x}" y="${entityLayout.y}" text-anchor="middle" dominant-baseline="middle" 
+                          font-size="18" font-weight="600" fill="${colors.entity.text}"
+                          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${entityName}</text>
+                `;
+            }
+            
+            entitiesLayer += '</g>\n';
+            
+            // 组合所有层级，确保正确的Z轴顺序
+            svgContent += linesLayer;    // 最底层：连接线
+            svgContent += relationshipsLayer; // 中间层：关系菱形
+            svgContent += entitiesLayer;  // 最上层：实体和属性
+            
+            svgContent += '</svg>';
+            return svgContent;
+        }
+        
+        // 生成ER图
+        function generateERDiagram() {
+            const erCode = document.getElementById('erCode').value;
+            const title = document.getElementById('diagramTitle').value || 'ER图';
+            
+            try {
+                const { entities, relations } = parseERCode(erCode);
+                const layout = createLayout(entities, relations);
+                const svgContent = generateSVG(entities, relations, layout, title);
+                
+                document.getElementById('svgContainer').innerHTML = svgContent;
+                
+                // 应用当前缩放
+                applyZoom();
+                
+                showToast('ER图生成成功', 'success');
+            } catch (error) {
+                console.error('生成ER图时出错:', error);
+                showToast('生成ER图失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新 AI 状态
+            updateAIStatus();
+            
+            // 绑定事件监听器
+            document.getElementById('apiProvider').addEventListener('change', toggleCustomEndpoint);
+            
+            // 初始生成
+            generateERDiagram();
+            
+            // 绑定生成按钮事件
+            document.getElementById('diagramTitle').addEventListener('change', generateERDiagram);
+            
+            // 自动保存功能
+            let autoSaveTimer;
+            document.getElementById('erCode').addEventListener('input', function() {
+                clearTimeout(autoSaveTimer);
+                autoSaveTimer = setTimeout(() => {
+                    generateERDiagram();
+                }, 1000); // 1秒后自动更新
+            });
+        });
+    </script>
+</body>
+</html>
