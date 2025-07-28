@@ -5,6 +5,9 @@
 ## 简介
 
 厌倦了在白板上画乱七八糟的ER图？受够了复杂的建模软件？这个ER图生成器就是为懒人程序员量身定制的神器！只需要几行简单的代码，就能生成漂亮的实体关系图。
+<img width="1892" height="1503" alt="image" src="https://github.com/user-attachments/assets/9efa6859-487d-4c96-9541-724ef7bca1ab" />
+<img width="1910" height="923" alt="image" src="https://github.com/user-attachments/assets/b0c7a56a-39a7-4ee9-9394-1fe941f7c385" />
+<img width="1910" height="923" alt="image" src="https://github.com/user-attachments/assets/3f4977d2-868f-4d11-b721-eca732ede67c" />
 
 ## 特性
 
